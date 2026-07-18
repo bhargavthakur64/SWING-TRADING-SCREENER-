@@ -4,7 +4,7 @@ A high-performance financial analytics web application designed for active swing
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
 1. **True Equal-Weighted NAV Calculation**:
  - Eliminates price-weighted biases. Each stock's price is first normalized to a base value of 100 on your selected start date:
@@ -33,7 +33,7 @@ A high-performance financial analytics web application designed for active swing
 
 ---
 
-## 📊 Data Sources & Libraries Used
+## Data Sources & Libraries Used
 
 ### 1. Watchlist Database
 *   **Local File (`watchlist.csv`)**: Contains 288 National Stock Exchange of India (NSE) symbols mapped directly to company names, sectors, Yahoo symbols (using the `.NS` suffix), and ISIN codes.
@@ -48,7 +48,7 @@ A high-performance financial analytics web application designed for active swing
 
 ---
 
-## 🛠️ Installation & Setup
+##  Installation & Setup
 
 To run this project locally, ensure you have Python 3 installed.
 
@@ -66,11 +66,11 @@ python app.py
 
 ### Step 3: Open the Dashboard
 Open your web browser and navigate to:
-**[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+**[http://127.0.0.1:8000](http://127.0.0.1:8000)** or your local host 
 
 ---
 
-## 📁 Project Directory Structure
+##  Project Directory Structure
 *   `app.py` - FastAPI backend application containing data endpoints and NAV calculations.
 *   `templates/`
     *   `index.html` - React front-end dashboard with CSS styling.
