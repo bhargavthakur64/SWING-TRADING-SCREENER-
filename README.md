@@ -1,28 +1,27 @@
 # Equal-Weighted Sector Watchlist Screener 
 
-A high-performance financial analytics web application designed for active swing traders. It loads sector watchlists containing **288 stocks** across **11 sectors**, pulls historical price data, computes a **true equal-weighted portfolio NAV**, calculates key exponential moving averages (20, 50, 200 EMA) for trend identification, and displays the result on a dark-themed responsive dashboard powered by the official **TradingView Lightweight Charts** engine.
+A high-performance financial analytics web application designed for active swing traders. It loads sector watchlists containing **288 stocks** across **34 sectors**, pulls historical price data, computes a **true equal-weighted portfolio NAV**, calculates key exponential moving averages (20, 50, 200 EMA) for trend identification, and displays the result on a dark-themed responsive dashboard powered by the official **TradingView Lightweight Charts** engine.
 
 ---
 
 ## 🚀 Key Features
 
 1. **True Equal-Weighted NAV Calculation**:
-   - Eliminates price-weighted biases. Each stock's price is normalized to a base value of 100 on your selected start date:
-     Pᵢ,ₜⁿᵒʳᵐ = Pᵢ,ₜ / Pᵢ,ₜ₀ × 100
-- The overall portfolio NAV is calculated daily as the mathematical average of these normalized stock prices:
-  NAVₜ = (1 / Nₜ) ∑ᵢ₌₁ᴺₜ Pᵢ,ₜⁿᵒʳᵐ
-   - This ensures a 10% move in a ₹100 stock carries the exact same weight as a 10% move in a ₹2,000 stock.
-
+ - Eliminates price-weighted biases. Each stock's price is first normalized to a base value of 100 on your selected start date:
+     
+     `Normalized Price = (Current Price / Starting Price) * 100`  Pᵢ,ₜⁿᵒʳᵐ = Pᵢ,ₜ / Pᵢ,ₜ₀ × 100
+     
+   - The overall portfolio NAV is calculated daily as the average of these normalized stock prices:
+     
+     `Portfolio NAV = (Sum of all Normalized Prices) / (Total Number of Stocks)` NAVₜ = (1 / Nₜ) ∑ᵢ₌₁ᴺₜ Pᵢ,ₜⁿᵒʳᵐ
+     
 2. **Official TradingView Charts (v5.2.0)**:
    - Integrates the high-performance canvas-rendered **TradingView Lightweight Charts** library.
    - Supports intuitive browser controls:
-     - **Mouse Drag-Pan**: Hold and drag left/right to scroll the timeline, or drag up/down to scroll the canvas.
-     - **Mouse Wheel / Trackpad Zoom**: Scroll to zoom in/out of the dates timeline.
-     - **Y-Axis Scale Dragging**: Click and drag the right-side price axis scale up/down to compress or stretch the price y-axis manually.
-     - **Reset View**: Click the **Reset Zoom** button in the header toolbar to fit all data back to the default viewport immediately.
+           - **Reset View**: Click the **Reset Zoom** button in the header toolbar to fit all data back to the default viewport immediately.
 
 3. **Multi-Sector Watchlist Dropdown**:
-   - Toggle instantly between 11 sectors parsed from your watchlist database.
+   - Toggle instantly between 34 sectors parsed from  watchlist database.
    - Quick filtering of watchlist stocks using the sidebar search box.
 
 4. **Floating Analytics Cards**:
