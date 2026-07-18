@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Project-specific ignores (temporary logs/scratchpads)
+.gemini/
+.agents/
+*.log
+scratch/
+test_*.py
+check_mime.py
+download_*.py
+find_jsx_error.py
+inspect_*.py
+walkthrough.md
+task.md
+implementation_plan.md
