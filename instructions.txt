@@ -1,0 +1,57 @@
+==========================================================================
+ EQUAL-WEIGHTED SECTOR WATCHLIST SCREENER & TRADINGVIEW DASHBOARD GUIDE
+==========================================================================
+
+This project is a premium Web Application built with Python FastAPI and React. It loads watchlists of 288 stocks across 11 sectors, pulls price data via Yahoo Finance, computes a true equal-weighted portfolio NAV, calculates 20/50/200 EMAs, and displays them on a dark TradingView dashboard.
+
+--------------------------------------------------------------------------
+1. PROJECT DIRECTORY STRUCTURE
+--------------------------------------------------------------------------
+- app.py               --> FastAPI backend containing calculations and endpoints.
+- templates/           
+   - index.html        --> React dashboard UI, overlays, layouts, and styles.
+- static/              
+   - lightweight-charts.js  --> Standalone TradingView charting engine.
+   - react.min.js      --> React framework local script.
+   - react-dom.min.js  --> React DOM renderer script.
+   - babel.min.js      --> Babel browser compiler script for JSX.
+- watchlist.csv        --> Watchlist database containing symbols, Yahoo tickers, and ISINs.
+- README.md            --> Project document for GitHub.
+- instructions.txt     --> This text file.
+
+--------------------------------------------------------------------------
+2. DATA & TECHNOLOGY SOURCES
+--------------------------------------------------------------------------
+- Stock Watchlists Source: 
+  Parsed directly from your spreadsheet text input. It contains 288 NSE tickers mapped to their corresponding sectors.
+- Historical Price Feed:
+  Yahoo Finance API (using python's 'yfinance' package), queries are automatically appended with '.NS' for correct Indian market data.
+- UI Libraries:
+  React 18, Babel (runtime compilation), and the official TradingView Lightweight Charts (v5.2.0) serving canvas renderings at 60fps.
+
+--------------------------------------------------------------------------
+3. HOW TO SET UP & RUN LOCALLY
+--------------------------------------------------------------------------
+STEP 1: Install Required Libraries
+Open Command Prompt/Terminal and run:
+   pip install fastapi uvicorn pandas yfinance requests openpyxl
+
+STEP 2: Start the Server
+Navigate to this directory in your terminal and execute:
+   python app.py
+
+STEP 3: Access the Dashboard
+Open your web browser and go to:
+   http://127.0.0.1:8000
+
+--------------------------------------------------------------------------
+4. CORE CHART CONTROLS (TRADINGVIEW LITE)
+--------------------------------------------------------------------------
+- MOVE CHART: Click and drag your mouse inside the chart canvas left/right.
+- ZOOM TIMELINE: Scroll your mouse wheel or swipe up/down on your trackpad.
+- STRETCH/COMPRESS PRICE SCALE: Click and drag on the right-hand Y-axis.
+- VERTICAL PAN: Drag the canvas up or down to reposition the lines.
+- RESET ZOOM: Click the "Reset Zoom" button in the top toolbar to restore the view instantly.
+- OVERLAYS: Click "Returns Overlay" or "Holdings Overlay" in the header to toggle floating overlays.
+
+==========================================================================
