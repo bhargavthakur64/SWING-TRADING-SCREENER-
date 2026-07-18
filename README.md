@@ -1,4 +1,4 @@
-# Equal-Weighted Sector Watchlist Screener & TradingView Dashboard
+# Equal-Weighted Sector Watchlist Screener 
 
 A high-performance financial analytics web application designed for active swing traders. It loads sector watchlists containing **288 stocks** across **11 sectors**, pulls historical price data, computes a **true equal-weighted portfolio NAV**, calculates key exponential moving averages (20, 50, 200 EMA) for trend identification, and displays the result on a dark-themed responsive dashboard powered by the official **TradingView Lightweight Charts** engine.
 
@@ -8,9 +8,9 @@ A high-performance financial analytics web application designed for active swing
 
 1. **True Equal-Weighted NAV Calculation**:
    - Eliminates price-weighted biases. Each stock's price is normalized to a base value of 100 on your selected start date:
-     $$P_{i, t}^{norm} = \frac{P_{i, t}}{P_{i, t_{0}}} \times 100$$
-   - The overall portfolio NAV is calculated daily as the mathematical average of these normalized stock prices:
-     $$\text{NAV}_{t} = \frac{1}{N_{t}} \sum_{i=1}^{N_{t}} P_{i, t}^{norm}$$
+     Pᵢ,ₜⁿᵒʳᵐ = Pᵢ,ₜ / Pᵢ,ₜ₀ × 100
+- The overall portfolio NAV is calculated daily as the mathematical average of these normalized stock prices:
+  NAVₜ = (1 / Nₜ) ∑ᵢ₌₁ᴺₜ Pᵢ,ₜⁿᵒʳᵐ
    - This ensures a 10% move in a ₹100 stock carries the exact same weight as a 10% move in a ₹2,000 stock.
 
 2. **Official TradingView Charts (v5.2.0)**:
