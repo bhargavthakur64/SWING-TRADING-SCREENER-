@@ -1,0 +1,919 @@
+//@version=6
+indicator(title="SSR Equal-Weighted NAV (Dynamic Sectors)", shorttitle="EW-NAV", overlay=false)
+ 
+// ─────────────────────────────────────────────
+// LABEL / DISPLAY SETTINGS
+// ─────────────────────────────────────────────
+selected_sector = input.string("Automobile and Auto Components", "Select Industry/Sector", 
+     options=["Automobile and Auto Components", "Financial Services", "Capital Goods", "Construction Materials", "Chemicals", "Services", "Construction", "Consumer Durables", "Consumer Services", "Fast Moving Consumer Goods", "Healthcare", "Hospital", "Housing finance", "Insurance", "Information Technology", "Media Entertainment & Publication", "Metals & Mining", "NBFC", "Oil Gas & Consumable Fuels", "Pharma", "Power", "Private banks", "PSU Banks", "Realty", "Telecommunication", "500Healthcare", "MidSmallFinancialServices", "MidSmallHealthcare"], 
+     group="Sector Settings", tooltip="Switches the calculation basket to the selected sector without overloading security limits.")
+
+show_label = input.bool(true,                   "Show Label", group="Display")
+label_size = input.string("normal",             "Label Size", group="Display", options=["tiny","small","normal","large","huge"])
+ 
+show_returns_table = input.bool(true, "Show Returns Table", group="Display")
+table_position_in  = input.string("Top Right", "Returns Table Position", group="Display", options=["Top Right","Top Left","Bottom Right","Bottom Left"])
+ 
+show_perf_table    = input.bool(true, "Show Stock vs NAV Table", group="Display")
+perf_table_pos_in  = input.string("Bottom Right", "Stock Table Position", group="Display", options=["Top Right","Top Left","Bottom Right","Bottom Left"])
+ 
+// ─────────────────────────────────────────────
+// NAV BASE — start date for rebasing
+// ─────────────────────────────────────────────
+startDate = input.time(timestamp("01 Jan 2024 00:00 +0530"), "Calculate NAV From", group="NAV Base",
+     tooltip="NAV rebases to 100 from the first valid bar on/after this date")
+ 
+// ─────────────────────────────────────────────
+// ACTIVE STOCK COUNT — the key control
+// ─────────────────────────────────────────────
+active = input.int(40, "Number of Active Stocks", minval=1, maxval=40, group="Basket",
+     tooltip="Only slots 1 through this number are included in the NAV computation.")
+ 
+// ─────────────────────────────────────────────
+// SECTOR MATRIX STORAGE (Up to 40 stocks per sector)
+// ─────────────────────────────────────────────
+var string[] tickers = array.new_string(40, "NSE:NIFTY")
+
+// Map the matrix array entries during initial execution thread
+if barstate.isfirst
+    switch selected_sector
+        "Automobile and Auto Components" =>
+            array.set(tickers, 0, "NSE:ASHOKLEY")
+            array.set(tickers, 1, "NSE:BAJAJ-AUTO")
+            array.set(tickers, 2, "NSE:BHARATFORG")
+            array.set(tickers, 3, "NSE:BOSCHLTD")
+            array.set(tickers, 4, "NSE:EICHERMOT")
+            array.set(tickers, 5, "NSE:EXIDEIND")
+            array.set(tickers, 6, "NSE:HEROMOTOCO")
+            array.set(tickers, 7, "NSE:M&M")
+            array.set(tickers, 8, "NSE:MARUTI")
+            array.set(tickers, 9, "NSE:MOTHERSON")
+            array.set(tickers, 10, "NSE:SONACOMS")
+            array.set(tickers, 11, "NSE:TVSMOTOR")
+            array.set(tickers, 12, "NSE:TMPV")
+            array.set(tickers, 13, "NSE:TIINDIA")
+            array.set(tickers, 14, "NSE:UNOMINDA")
+        "Financial Services" =>
+            array.set(tickers, 0, "NSE:AUBANK")
+            array.set(tickers, 1, "NSE:AXISBANK")
+            array.set(tickers, 2, "NSE:BANKBARODA")
+            array.set(tickers, 3, "NSE:CANBK")
+            array.set(tickers, 4, "NSE:FEDERALBNK")
+            array.set(tickers, 5, "NSE:HDFCBANK")
+            array.set(tickers, 6, "NSE:ICICIBANK")
+            array.set(tickers, 7, "NSE:IDFCFIRSTB")
+            array.set(tickers, 8, "NSE:INDUSINDBK")
+            array.set(tickers, 9, "NSE:KOTAKBANK")
+            array.set(tickers, 10, "NSE:PNB")
+            array.set(tickers, 11, "NSE:SBIN")
+            array.set(tickers, 12, "NSE:UNIONBANK")
+            array.set(tickers, 13, "NSE:YESBANK")
+            array.set(tickers, 14, "NSE:360ONE")
+            array.set(tickers, 15, "NSE:ABCAPITAL")
+            array.set(tickers, 16, "NSE:ANGELONE")
+            array.set(tickers, 17, "NSE:BSE")
+            array.set(tickers, 18, "NSE:BAJFINANCE")
+            array.set(tickers, 19, "NSE:BAJAJFINSV")
+            array.set(tickers, 20, "NSE:BAJAJHLDNG")
+            array.set(tickers, 21, "NSE:CDSL")
+            array.set(tickers, 22, "NSE:CHOLAFIN")
+            array.set(tickers, 23, "NSE:CAMS")
+            array.set(tickers, 24, "NSE:HDFCAMC")
+            array.set(tickers, 25, "NSE:HDFCLIFE")
+            array.set(tickers, 26, "NSE:ICICIGI")
+            array.set(tickers, 27, "NSE:ICICIPRULI")
+            array.set(tickers, 28, "NSE:IRFC")
+            array.set(tickers, 29, "NSE:JIOFIN")
+            array.set(tickers, 30, "NSE:LTF")
+            array.set(tickers, 31, "NSE:LICHSGFIN")
+            array.set(tickers, 32, "NSE:LICI")
+            array.set(tickers, 33, "NSE:MFSL")
+            array.set(tickers, 34, "NSE:MCX")
+            array.set(tickers, 35, "NSE:MUTHOOTFIN")
+            array.set(tickers, 36, "NSE:PAYTM")
+            array.set(tickers, 37, "NSE:POLICYBZR")
+            array.set(tickers, 38, "NSE:PNBHOUSING")
+            array.set(tickers, 39, "NSE:PFC")
+        "Capital Goods" =>
+            array.set(tickers, 0, "NSE:ABB")
+            array.set(tickers, 1, "NSE:AIAENG")
+            array.set(tickers, 2, "NSE:APLAPOLLO")
+            array.set(tickers, 3, "NSE:APARINDS")
+            array.set(tickers, 4, "NSE:ASHOKLEY")
+            array.set(tickers, 5, "NSE:ASTRAMICRO")
+            array.set(tickers, 6, "NSE:ASTRAL")
+            array.set(tickers, 7, "NSE:BEML")
+            array.set(tickers, 8, "NSE:BDL")
+            array.set(tickers, 9, "NSE:BEL")
+            array.set(tickers, 10, "NSE:BHEL")
+            array.set(tickers, 11, "NSE:CGPOWER")
+            array.set(tickers, 12, "NSE:CARBORUNIV")
+            array.set(tickers, 13, "NSE:COCHINSHIP")
+            array.set(tickers, 14, "NSE:CUMMINSIND")
+            array.set(tickers, 15, "NSE:DATAPATTNS")
+            array.set(tickers, 16, "NSE:ELGIEQUIP")
+            array.set(tickers, 17, "NSE:ESCORTS")
+            array.set(tickers, 18, "NSE:FINCABLES")
+            array.set(tickers, 19, "NSE:FINPIPE")
+            array.set(tickers, 20, "NSE:GVT&D")
+            array.set(tickers, 21, "NSE:GRSE")
+            array.set(tickers, 22, "NSE:HBLENGINE")
+            array.set(tickers, 23, "NSE:HAL")
+            array.set(tickers, 24, "NSE:POWERINDIA")
+            array.set(tickers, 25, "NSE:HONAUT")
+            array.set(tickers, 26, "NSE:INOXWIND")
+            array.set(tickers, 27, "NSE:JYOTICNC")
+            array.set(tickers, 28, "NSE:KEI")
+            array.set(tickers, 29, "NSE:KAYNES")
+            array.set(tickers, 30, "NSE:KIRLOSENG")
+            array.set(tickers, 31, "NSE:MAZDOCK")
+            array.set(tickers, 32, "NSE:PTCIL")
+            array.set(tickers, 33, "NSE:POLYCAB")
+            array.set(tickers, 34, "NSE:PRAJIND")
+            array.set(tickers, 35, "NSE:PREMIERENE")
+            array.set(tickers, 36, "NSE:ENRIN")
+            array.set(tickers, 37, "NSE:SIEMENS")
+            array.set(tickers, 38, "NSE:SUPREMEIND")
+            array.set(tickers, 39, "NSE:SUZLON")
+        "Construction Materials" =>
+            array.set(tickers, 0, "NSE:ULTRACEMCO")
+            array.set(tickers, 1, "NSE:GRASIM")
+            array.set(tickers, 2, "NSE:AMBUJACEM")
+            array.set(tickers, 3, "NSE:SHREECEM")
+            array.set(tickers, 4, "NSE:JKCEMENT")
+            array.set(tickers, 5, "NSE:DALBHARAT")
+            array.set(tickers, 6, "NSE:ACC")
+            array.set(tickers, 7, "NSE:RAMCOCEM")
+            array.set(tickers, 8, "NSE:JSWCEMENT")
+            array.set(tickers, 9, "NSE:NUVOCO")
+            array.set(tickers, 10, "NSE:INDIACEM")
+            array.set(tickers, 11, "NSE:JKLAKSHMI")
+            array.set(tickers, 12, "NSE:STARCEMENT")
+            array.set(tickers, 13, "NSE:BIRLACORPN")
+            array.set(tickers, 14, "NSE:PRSMJOHNSN")
+            array.set(tickers, 15, "NSE:ORIENTCEM")
+        "Chemicals" =>
+            array.set(tickers, 0, "NSE:AARTIIND")
+            array.set(tickers, 1, "NSE:ATUL")
+            array.set(tickers, 2, "NSE:BAYERCROP")
+            array.set(tickers, 3, "NSE:CHAMBLFERT")
+            array.set(tickers, 4, "NSE:COROMANDEL")
+            array.set(tickers, 5, "NSE:DEEPAKNTR")
+            array.set(tickers, 6, "NSE:EIDPARRY")
+            array.set(tickers, 7, "NSE:FLUOROCHEM")
+            array.set(tickers, 8, "NSE:GNFC")
+            array.set(tickers, 9, "NSE:HSCL")
+            array.set(tickers, 10, "NSE:LINDEINDIA")
+            array.set(tickers, 11, "NSE:NAVINFLUOR")
+            array.set(tickers, 12, "NSE:PCBL")
+            array.set(tickers, 13, "NSE:PIIND")
+            array.set(tickers, 14, "NSE:PIDILITIND")
+            array.set(tickers, 15, "NSE:SRF")
+            array.set(tickers, 16, "NSE:SOLARINDS")
+            array.set(tickers, 17, "NSE:SUMICHEM")
+            array.set(tickers, 18, "NSE:TATACHEM")
+            array.set(tickers, 19, "NSE:UPL")
+        "Services" =>
+            array.set(tickers, 0, "NSE:ADANIPORTS")
+            array.set(tickers, 1, "NSE:AWFIS")
+            array.set(tickers, 2, "NSE:BLACKBUCK")
+            array.set(tickers, 3, "NSE:BLUEDART")
+            array.set(tickers, 4, "NSE:CMSINFO")
+            array.set(tickers, 5, "NSE:CONCOR")
+            array.set(tickers, 6, "NSE:DELHIVERY")
+            array.set(tickers, 7, "NSE:FSL")
+            array.set(tickers, 8, "NSE:GMRAIRPORT")
+            array.set(tickers, 9, "NSE:GESHIP")
+            array.set(tickers, 10, "NSE:GPPL")
+            array.set(tickers, 11, "NSE:HEMIPROP")
+            array.set(tickers, 12, "NSE:INOXGREEN")
+            array.set(tickers, 13, "NSE:INDIGO")
+            array.set(tickers, 14, "NSE:IGIL")
+            array.set(tickers, 15, "NSE:JSWINFRA")
+            array.set(tickers, 16, "NSE:MMTC")
+            array.set(tickers, 17, "NSE:MSTCLTD")
+            array.set(tickers, 18, "NSE:NESCO")
+            array.set(tickers, 19, "NSE:QUESS")
+            array.set(tickers, 20, "NSE:REDINGTON")
+            array.set(tickers, 21, "NSE:SCI")
+            array.set(tickers, 22, "NSE:SMARTWORKS")
+            array.set(tickers, 23, "NSE:TVSSCS")
+            array.set(tickers, 24, "NSE:WEWORK")
+            array.set(tickers, 25, "NSE:ECLERX")
+        "Construction" =>
+            array.set(tickers, 0, "NSE:AFCONS")
+            array.set(tickers, 1, "NSE:AHLUCONT")
+            array.set(tickers, 2, "NSE:ASHOKA")
+            array.set(tickers, 3, "NSE:CEMPRO")
+            array.set(tickers, 4, "NSE:DBL")
+            array.set(tickers, 5, "NSE:ENGINERSIN")
+            array.set(tickers, 6, "NSE:HGINFRA")
+            array.set(tickers, 7, "NSE:HCC")
+            array.set(tickers, 8, "NSE:IRB")
+            array.set(tickers, 9, "NSE:IRCON")
+            array.set(tickers, 10, "NSE:KNRCON")
+            array.set(tickers, 11, "NSE:KPIL")
+            array.set(tickers, 12, "NSE:KEC")
+            array.set(tickers, 13, "NSE:LT")
+            array.set(tickers, 14, "NSE:NBCC")
+            array.set(tickers, 15, "NSE:NCC")
+            array.set(tickers, 16, "NSE:PNCINFRA")
+            array.set(tickers, 17, "NSE:POWERMECH")
+            array.set(tickers, 18, "NSE:RITES")
+            array.set(tickers, 19, "NSE:RVNL")
+            array.set(tickers, 20, "NSE:SWSOLAR")
+            array.set(tickers, 21, "NSE:TECHNOE")
+            array.set(tickers, 22, "NSE:WELENT")
+        "Consumer Durables" =>
+            array.set(tickers, 0, "NSE:AMBER")
+            array.set(tickers, 1, "NSE:BATAINDIA")
+            array.set(tickers, 2, "NSE:BLUESTARCO")
+            array.set(tickers, 3, "NSE:CROMPTON")
+            array.set(tickers, 4, "NSE:DIXON")
+            array.set(tickers, 5, "NSE:HAVELLS")
+            array.set(tickers, 6, "NSE:KAJARIACER")
+            array.set(tickers, 7, "NSE:KALYANKJIL")
+            array.set(tickers, 8, "NSE:LGEINDIA")
+            array.set(tickers, 9, "NSE:PGEL")
+            array.set(tickers, 10, "NSE:TITAN")
+            array.set(tickers, 11, "NSE:VOLTAS")
+            array.set(tickers, 12, "NSE:WHIRLPOOL")
+        "Consumer Services" =>
+            array.set(tickers, 0, "NSE:ABFRL")
+            array.set(tickers, 1, "NSE:ABLBL")
+            array.set(tickers, 2, "NSE:AVL")
+            array.set(tickers, 3, "NSE:ARVINDFASN")
+            array.set(tickers, 4, "NSE:DMART")
+            array.set(tickers, 5, "NSE:BLS")
+            array.set(tickers, 6, "NSE:FIRSTCRY")
+            array.set(tickers, 7, "NSE:CARTRADE")
+            array.set(tickers, 8, "NSE:CHALET")
+            array.set(tickers, 9, "NSE:CRIZAC")
+            array.set(tickers, 10, "NSE:DEVYANI")
+            array.set(tickers, 11, "NSE:EIHOTEL")
+            array.set(tickers, 12, "NSE:EMIL")
+            array.set(tickers, 13, "NSE:ENTERO")
+            array.set(tickers, 14, "NSE:ETERNAL")
+            array.set(tickers, 15, "NSE:NYKAA")
+            array.set(tickers, 16, "NSE:ITCHOTELS")
+            array.set(tickers, 17, "NSE:INDIAMART")
+            array.set(tickers, 18, "NSE:INDHOTEL")
+            array.set(tickers, 19, "NSE:IRCTC")
+            array.set(tickers, 20, "NSE:NAUKRI")
+            array.set(tickers, 21, "NSE:JSLL")
+            array.set(tickers, 22, "NSE:JUBLFOOD")
+            array.set(tickers, 23, "NSE:JUSTDIAL")
+            array.set(tickers, 24, "NSE:IXIGO")
+            array.set(tickers, 25, "NSE:THELEELA")
+            array.set(tickers, 26, "NSE:LEMONTREE")
+            array.set(tickers, 27, "NSE:LENSKART")
+            array.set(tickers, 28, "NSE:MEDPLUS")
+            array.set(tickers, 29, "NSE:MEESHO")
+            array.set(tickers, 30, "NSE:PWL")
+            array.set(tickers, 31, "NSE:RTNINDIA")
+            array.set(tickers, 32, "NSE:RBA")
+            array.set(tickers, 33, "NSE:SAMHI")
+            array.set(tickers, 34, "NSE:SAPPHIRE")
+            array.set(tickers, 35, "NSE:SWIGGY")
+            array.set(tickers, 36, "NSE:TBOTEK")
+            array.set(tickers, 37, "NSE:THOMASCOOK")
+            array.set(tickers, 38, "NSE:TRAVELFOOD")
+            array.set(tickers, 39, "NSE:TRENT")
+        "Fast Moving Consumer Goods" =>
+            array.set(tickers, 0, "NSE:BRITANNIA")
+            array.set(tickers, 1, "NSE:COLPAL")
+            array.set(tickers, 2, "NSE:DABUR")
+            array.set(tickers, 3, "NSE:EMAMILTD")
+            array.set(tickers, 4, "NSE:GODREJCP")
+            array.set(tickers, 5, "NSE:HINDUNILVR")
+            array.set(tickers, 6, "NSE:ITC")
+            array.set(tickers, 7, "NSE:MARICO")
+            array.set(tickers, 8, "NSE:NESTLEIND")
+            array.set(tickers, 9, "NSE:PATANJALI")
+            array.set(tickers, 10, "NSE:RADICO")
+            array.set(tickers, 11, "NSE:TATACONSUM")
+            array.set(tickers, 12, "NSE:UBL")
+            array.set(tickers, 13, "NSE:UNITDSPR")
+            array.set(tickers, 14, "NSE:VBL")
+        "Healthcare" =>
+            array.set(tickers, 0, "NSE:ABBOTINDIA")
+            array.set(tickers, 1, "NSE:ALKEM")
+            array.set(tickers, 2, "NSE:APOLLOHOSP")
+            array.set(tickers, 3, "NSE:AUROPHARMA")
+            array.set(tickers, 4, "NSE:BIOCON")
+            array.set(tickers, 5, "NSE:CIPLA")
+            array.set(tickers, 6, "NSE:DIVISLAB")
+            array.set(tickers, 7, "NSE:DRREDDY")
+            array.set(tickers, 8, "NSE:FORTIS")
+            array.set(tickers, 9, "NSE:GLENMARK")
+            array.set(tickers, 10, "NSE:IPCALAB")
+            array.set(tickers, 11, "NSE:LAURUSLABS")
+            array.set(tickers, 12, "NSE:LUPIN")
+            array.set(tickers, 13, "NSE:MANKIND")
+            array.set(tickers, 14, "NSE:MAXHEALTH")
+            array.set(tickers, 15, "NSE:PPLPHARMA")
+            array.set(tickers, 16, "NSE:SUNPHARMA")
+            array.set(tickers, 17, "NSE:SYNGENE")
+            array.set(tickers, 18, "NSE:TORNTPHARM")
+            array.set(tickers, 19, "NSE:ZYDUSLIFE")
+        "Hospital" =>
+            array.set(tickers, 0, "NSE:APOLLOHOSP")
+            array.set(tickers, 1, "NSE:ASTERDM")
+            array.set(tickers, 2, "NSE:AGARWALEYE")
+            array.set(tickers, 3, "NSE:FORTIS")
+            array.set(tickers, 4, "NSE:MEDANTA")
+            array.set(tickers, 5, "NSE:HCG")
+            array.set(tickers, 6, "NSE:JLHL")
+            array.set(tickers, 7, "NSE:KIMS")
+            array.set(tickers, 8, "NSE:MAXHEALTH")
+            array.set(tickers, 9, "NSE:NH")
+            array.set(tickers, 10, "NSE:PARKHOSPS")
+            array.set(tickers, 11, "NSE:RAINBOW")
+            array.set(tickers, 12, "NSE:YATHARTH")
+        "Housing finance" =>
+            array.set(tickers, 0, "NSE:AADHARHFC")
+            array.set(tickers, 1, "NSE:AAVAS")
+            array.set(tickers, 2, "NSE:APTUS")
+            array.set(tickers, 3, "NSE:BAJAJHFL")
+            array.set(tickers, 4, "NSE:CANFINHOME")
+            array.set(tickers, 5, "NSE:HOMEFIRST")
+            array.set(tickers, 6, "NSE:INDIASHLTR")
+            array.set(tickers, 7, "NSE:LICHSGFIN")
+            array.set(tickers, 8, "NSE:PNBHOUSING")
+            array.set(tickers, 9, "NSE:SAMMAANCAP")
+        "Insurance" =>
+            array.set(tickers, 0, "NSE:CANHLIFE")
+            array.set(tickers, 1, "NSE:GICRE")
+            array.set(tickers, 2, "NSE:GODIGIT")
+            array.set(tickers, 3, "NSE:HDFCLIFE")
+            array.set(tickers, 4, "NSE:ICICIGI")
+            array.set(tickers, 5, "NSE:ICICIPRULI")
+            array.set(tickers, 6, "NSE:LICI")
+            array.set(tickers, 7, "NSE:MFSL")
+            array.set(tickers, 8, "NSE:NIVABUPA")
+            array.set(tickers, 9, "NSE:SBILIFE")
+            array.set(tickers, 10, "NSE:STARHEALTH")
+            array.set(tickers, 11, "NSE:NIACL")
+        "Information Technology" =>
+            array.set(tickers, 0, "NSE:COFORGE")
+            array.set(tickers, 1, "NSE:HCLTECH")
+            array.set(tickers, 2, "NSE:INFY")
+            array.set(tickers, 3, "NSE:LTM")
+            array.set(tickers, 4, "NSE:MPHASIS")
+            array.set(tickers, 5, "NSE:OFSS")
+            array.set(tickers, 6, "NSE:PERSISTENT")
+            array.set(tickers, 7, "NSE:TCS")
+            array.set(tickers, 8, "NSE:TECHM")
+            array.set(tickers, 9, "NSE:WIPRO")
+        "Media Entertainment & Publication" =>
+            array.set(tickers, 0, "NSE:DBCORP")
+            array.set(tickers, 1, "NSE:HATHWAY")
+            array.set(tickers, 2, "NSE:NAZARA")
+            array.set(tickers, 3, "NSE:NETWORK18")
+            array.set(tickers, 4, "NSE:PVRINOX")
+            array.set(tickers, 5, "NSE:PFOCUS")
+            array.set(tickers, 6, "NSE:SAREGAMA")
+            array.set(tickers, 7, "NSE:SUNTV")
+            array.set(tickers, 8, "NSE:TIPSMUSIC")
+            array.set(tickers, 9, "NSE:ZEEL")
+        "Metals & Mining" =>
+            array.set(tickers, 0, "NSE:APLAPOLLO")
+            array.set(tickers, 1, "NSE:ADANIENT")
+            array.set(tickers, 2, "NSE:HINDALCO")
+            array.set(tickers, 3, "NSE:HINDCOPPER")
+            array.set(tickers, 4, "NSE:HINDZINC")
+            array.set(tickers, 5, "NSE:JSWSTEEL")
+            array.set(tickers, 6, "NSE:JSL")
+            array.set(tickers, 7, "NSE:JINDALSTEL")
+            array.set(tickers, 8, "NSE:LLOYDSME")
+            array.set(tickers, 9, "NSE:NMDC")
+            array.set(tickers, 10, "NSE:NATIONALUM")
+            array.set(tickers, 11, "NSE:SAIL")
+            array.set(tickers, 12, "NSE:TATASTEEL")
+            array.set(tickers, 13, "NSE:VEDL")
+            array.set(tickers, 14, "NSE:WELCORP")
+        "NBFC" =>
+            array.set(tickers, 0, "NSE:AIIL")
+            array.set(tickers, 1, "NSE:BAJFINANCE")
+            array.set(tickers, 2, "NSE:CGCL")
+            array.set(tickers, 3, "NSE:CHOLAFIN")
+            array.set(tickers, 4, "NSE:FEDFINA")
+            array.set(tickers, 5, "NSE:FIVESTAR")
+            array.set(tickers, 6, "NSE:HDBFS")
+            array.set(tickers, 7, "NSE:IIFL")
+            array.set(tickers, 8, "NSE:LTF")
+            array.set(tickers, 9, "NSE:M&MFIN")
+            array.set(tickers, 10, "NSE:MANAPPURAM")
+            array.set(tickers, 11, "NSE:MUTHOOTFIN")
+            array.set(tickers, 12, "NSE:PIRAMALFIN")
+            array.set(tickers, 13, "NSE:POONAWALLA")
+            array.set(tickers, 14, "NSE:SBFC")
+            array.set(tickers, 15, "NSE:SBICARD")
+            array.set(tickers, 16, "NSE:SHRIRAMFIN")
+            array.set(tickers, 17, "NSE:SUNDARMFIN")
+            array.set(tickers, 18, "NSE:TATACAP")
+        "Oil Gas & Consumable Fuels" =>
+            array.set(tickers, 0, "NSE:ATGL")
+            array.set(tickers, 1, "NSE:AEGISLOG")
+            array.set(tickers, 2, "NSE:AEGISVOPAK")
+            array.set(tickers, 3, "NSE:BPCL")
+            array.set(tickers, 4, "NSE:CASTROLIND")
+            array.set(tickers, 5, "NSE:CHENNPETRO")
+            array.set(tickers, 6, "NSE:GAIL")
+            array.set(tickers, 7, "NSE:HINDPETRO")
+            array.set(tickers, 8, "NSE:IOC")
+            array.set(tickers, 9, "NSE:IGL")
+            array.set(tickers, 10, "NSE:MGL")
+            array.set(tickers, 11, "NSE:ONGC")
+            array.set(tickers, 12, "NSE:OIL")
+            array.set(tickers, 13, "NSE:PETRONET")
+            array.set(tickers, 14, "NSE:RELIANCE")
+        "Pharma" =>
+            array.set(tickers, 0, "NSE:ABBOTINDIA")
+            array.set(tickers, 1, "NSE:AJANTPHARM")
+            array.set(tickers, 2, "NSE:ALKEM")
+            array.set(tickers, 3, "NSE:AUROPHARMA")
+            array.set(tickers, 4, "NSE:BIOCON")
+            array.set(tickers, 5, "NSE:CIPLA")
+            array.set(tickers, 6, "NSE:DIVISLAB")
+            array.set(tickers, 7, "NSE:DRREDDY")
+            array.set(tickers, 8, "NSE:GLAND")
+            array.set(tickers, 9, "NSE:GLENMARK")
+            array.set(tickers, 10, "NSE:IPCALAB")
+            array.set(tickers, 11, "NSE:LAURUSLABS")
+            array.set(tickers, 12, "NSE:LUPIN")
+            array.set(tickers, 13, "NSE:MANKIND")
+            array.set(tickers, 14, "NSE:PPLPHARMA")
+            array.set(tickers, 15, "NSE:SAILIFE")
+            array.set(tickers, 16, "NSE:SUNPHARMA")
+            array.set(tickers, 17, "NSE:TORNTPHARM")
+            array.set(tickers, 18, "NSE:WOCKPHARMA")
+            array.set(tickers, 19, "NSE:ZYDUSLIFE")
+        "Power" =>
+            array.set(tickers, 0, "NSE:ACMESOLAR")
+            array.set(tickers, 1, "NSE:ADANIENSOL")
+            array.set(tickers, 2, "NSE:ADANIGREEN")
+            array.set(tickers, 3, "NSE:ADANIPOWER")
+            array.set(tickers, 4, "NSE:CESC")
+            array.set(tickers, 5, "NSE:GMRP&UI")
+            array.set(tickers, 6, "NSE:JSWENERGY")
+            array.set(tickers, 7, "NSE:JPPOWER")
+            array.set(tickers, 8, "NSE:KPIGREEN")
+            array.set(tickers, 9, "NSE:NHPC")
+            array.set(tickers, 10, "NSE:NLCINDIA")
+            array.set(tickers, 11, "NSE:NTPCGREEN")
+            array.set(tickers, 12, "NSE:NTPC")
+            array.set(tickers, 13, "NSE:NAVA")
+            array.set(tickers, 14, "NSE:PTC")
+            array.set(tickers, 15, "NSE:POWERGRID")
+            array.set(tickers, 16, "NSE:RTNPOWER")
+            array.set(tickers, 17, "NSE:RPOWER")
+            array.set(tickers, 18, "NSE:SJVN")
+            array.set(tickers, 19, "NSE:TATAPOWER")
+            array.set(tickers, 20, "NSE:TORNTPOWER")
+        "Private banks" =>
+            array.set(tickers, 0, "NSE:AXISBANK")
+            array.set(tickers, 1, "NSE:BANDHANBNK")
+            array.set(tickers, 2, "NSE:FEDERALBNK")
+            array.set(tickers, 3, "NSE:HDFCBANK")
+            array.set(tickers, 4, "NSE:ICICIBANK")
+            array.set(tickers, 5, "NSE:IDFCFIRSTB")
+            array.set(tickers, 6, "NSE:INDUSINDBK")
+            array.set(tickers, 7, "NSE:KOTAKBANK")
+            array.set(tickers, 8, "NSE:RBLBANK")
+            array.set(tickers, 9, "NSE:YESBANK")
+        "PSU Banks" =>
+            array.set(tickers, 0, "NSE:BANKBARODA")
+            array.set(tickers, 1, "NSE:BANKINDIA")
+            array.set(tickers, 2, "NSE:MAHABANK")
+            array.set(tickers, 3, "NSE:CANBK")
+            array.set(tickers, 4, "NSE:CENTRALBK")
+            array.set(tickers, 5, "NSE:INDIANB")
+            array.set(tickers, 6, "NSE:IOB")
+            array.set(tickers, 7, "NSE:PSB")
+            array.set(tickers, 8, "NSE:PNB")
+            array.set(tickers, 9, "NSE:SBIN")
+            array.set(tickers, 10, "NSE:UCOBANK")
+            array.set(tickers, 11, "NSE:UNIONBANK")
+        "Realty" =>
+            array.set(tickers, 0, "NSE:ABREL")
+            array.set(tickers, 1, "NSE:ANANTRAJ")
+            array.set(tickers, 2, "NSE:BRIGADE")
+            array.set(tickers, 3, "NSE:DLF")
+            array.set(tickers, 4, "NSE:GODREJPROP")
+            array.set(tickers, 5, "NSE:LODHA")
+            array.set(tickers, 6, "NSE:OBEROIRLTY")
+            array.set(tickers, 7, "NSE:PHOENIXLTD")
+            array.set(tickers, 8, "NSE:PRESTIGE")
+            array.set(tickers, 9, "NSE:SOBHA")
+        "Telecommunication" =>
+            array.set(tickers, 0, "NSE:BHARTIARTL")
+            array.set(tickers, 1, "NSE:BHARTIHEXA")
+            array.set(tickers, 2, "NSE:HFCL")
+            array.set(tickers, 3, "NSE:ITI")
+            array.set(tickers, 4, "NSE:INDUSTOWER")
+            array.set(tickers, 5, "NSE:OPTIEMUS")
+            array.set(tickers, 6, "NSE:RAILTEL")
+            array.set(tickers, 7, "NSE:ROUTE")
+            array.set(tickers, 8, "NSE:STLTECH")
+            array.set(tickers, 9, "NSE:TATACOMM")
+            array.set(tickers, 10, "NSE:TTML")
+            array.set(tickers, 11, "NSE:TEJASNET")
+            array.set(tickers, 12, "NSE:IDEA")
+        "500Healthcare" =>
+            array.set(tickers, 0, "NSE:ABBOTINDIA")
+            array.set(tickers, 1, "NSE:AJANTPHARM")
+            array.set(tickers, 2, "NSE:APLLTD")
+            array.set(tickers, 3, "NSE:ALIVUS")
+            array.set(tickers, 4, "NSE:ALKEM")
+            array.set(tickers, 5, "NSE:APOLLOHOSP")
+            array.set(tickers, 6, "NSE:ASTERDM")
+            array.set(tickers, 7, "NSE:ASTRAZEN")
+            array.set(tickers, 8, "NSE:AUROPHARMA")
+            array.set(tickers, 9, "NSE:BIOCON")
+            array.set(tickers, 10, "NSE:CAPLIPOINT")
+            array.set(tickers, 11, "NSE:CIPLA")
+            array.set(tickers, 12, "NSE:COHANCE")
+            array.set(tickers, 13, "NSE:CONCORDBIO")
+            array.set(tickers, 14, "NSE:DIVISLAB")
+            array.set(tickers, 15, "NSE:LALPATHLAB")
+            array.set(tickers, 16, "NSE:DRREDDY")
+            array.set(tickers, 17, "NSE:EMCURE")
+            array.set(tickers, 18, "NSE:ERIS")
+            array.set(tickers, 19, "NSE:FORTIS")
+            array.set(tickers, 20, "NSE:GLAND")
+            array.set(tickers, 21, "NSE:GLAXO")
+            array.set(tickers, 22, "NSE:GLENMARK")
+            array.set(tickers, 23, "NSE:MEDANTA")
+            array.set(tickers, 24, "NSE:GRANULES")
+            array.set(tickers, 25, "NSE:INDGN")
+            array.set(tickers, 26, "NSE:IPCALAB")
+            array.set(tickers, 27, "NSE:JBCHEPHARM")
+            array.set(tickers, 28, "NSE:JUBLPHARMA")
+            array.set(tickers, 29, "NSE:KIMS")
+            array.set(tickers, 30, "NSE:LAURUSLABS")
+            array.set(tickers, 31, "NSE:LUPIN")
+            array.set(tickers, 32, "NSE:MANKIND")
+            array.set(tickers, 33, "NSE:MAXHEALTH")
+            array.set(tickers, 34, "NSE:METROPOLIS")
+            array.set(tickers, 35, "NSE:NATCOPHARM")
+            array.set(tickers, 36, "NSE:NH")
+            array.set(tickers, 37, "NSE:NEULANDLAB")
+            array.set(tickers, 38, "NSE:PFIZER")
+            array.set(tickers, 39, "NSE:PPLPHARMA")
+        "MidSmallFinancialServices" =>
+            array.set(tickers, 0, "NSE:360ONE")
+            array.set(tickers, 1, "NSE:AUBANK")
+            array.set(tickers, 2, "NSE:ABCAPITAL")
+            array.set(tickers, 3, "NSE:ANGELONE")
+            array.set(tickers, 4, "NSE:BSE")
+            array.set(tickers, 5, "NSE:BANDHANBNK")
+            array.set(tickers, 6, "NSE:BANKINDIA")
+            array.set(tickers, 7, "NSE:CDSL")
+            array.set(tickers, 8, "NSE:CAMS")
+            array.set(tickers, 9, "NSE:FEDERALBNK")
+            array.set(tickers, 10, "NSE:HUDCO")
+            array.set(tickers, 11, "NSE:ICICIGI")
+            array.set(tickers, 12, "NSE:ICICIPRULI")
+            array.set(tickers, 13, "NSE:IDFCFIRSTB")
+            array.set(tickers, 14, "NSE:INDIANB")
+            array.set(tickers, 15, "NSE:IEX")
+            array.set(tickers, 16, "NSE:INDUSINDBK")
+            array.set(tickers, 17, "NSE:KFINTECH")
+            array.set(tickers, 18, "NSE:LTF")
+            array.set(tickers, 19, "NSE:LICHSGFIN")
+            array.set(tickers, 20, "NSE:LICI")
+            array.set(tickers, 21, "NSE:MANAPPURAM")
+            array.set(tickers, 22, "NSE:MFSL")
+            array.set(tickers, 23, "NSE:MCX")
+            array.set(tickers, 24, "NSE:PAYTM")
+            array.set(tickers, 25, "NSE:POLICYBZR")
+            array.set(tickers, 26, "NSE:PNBHOUSING")
+            array.set(tickers, 27, "NSE:RBLBANK")
+            array.set(tickers, 28, "NSE:SBICARD")
+            array.set(tickers, 29, "NSE:YESBANK")
+        "MidSmallHealthcare" =>
+            array.set(tickers, 0, "NSE:ABBOTINDIA")
+            array.set(tickers, 1, "NSE:ACUTAAS")
+            array.set(tickers, 2, "NSE:AJANTPHARM")
+            array.set(tickers, 3, "NSE:ALKEM")
+            array.set(tickers, 4, "NSE:ASTERDM")
+            array.set(tickers, 5, "NSE:AUROPHARMA")
+            array.set(tickers, 6, "NSE:BIOCON")
+            array.set(tickers, 7, "NSE:COHANCE")
+            array.set(tickers, 8, "NSE:LALPATHLAB")
+            array.set(tickers, 9, "NSE:FORTIS")
+            array.set(tickers, 10, "NSE:GLAND")
+            array.set(tickers, 11, "NSE:GLAXO")
+            array.set(tickers, 12, "NSE:GLENMARK")
+            array.set(tickers, 13, "NSE:MEDANTA")
+            array.set(tickers, 14, "NSE:GRANULES")
+            array.set(tickers, 15, "NSE:IPCALAB")
+            array.set(tickers, 16, "NSE:KIMS")
+            array.set(tickers, 17, "NSE:LAURUSLABS")
+            array.set(tickers, 18, "NSE:LUPIN")
+            array.set(tickers, 19, "NSE:MANKIND")
+            array.set(tickers, 20, "NSE:NATCOPHARM")
+            array.set(tickers, 21, "NSE:NH")
+            array.set(tickers, 22, "NSE:NEULANDLAB")
+            array.set(tickers, 23, "NSE:ONESOURCE")
+            array.set(tickers, 24, "NSE:PFIZER")
+            array.set(tickers, 25, "NSE:PPLPHARMA")
+            array.set(tickers, 26, "NSE:POLYMED")
+            array.set(tickers, 27, "NSE:SAILIFE")
+            array.set(tickers, 28, "NSE:SYNGENE")
+            array.set(tickers, 29, "NSE:WOCKPHARMA")
+
+// ─────────────────────────────────────────────
+// DYNAMIC FETCH PRICES (Pine Script v6 Runtime Engine)
+// ─────────────────────────────────────────────
+p01 = active >= 1  ? request.security(array.get(tickers, 0),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p02 = active >= 2  ? request.security(array.get(tickers, 1),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p03 = active >= 3  ? request.security(array.get(tickers, 2),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p04 = active >= 4  ? request.security(array.get(tickers, 3),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p05 = active >= 5  ? request.security(array.get(tickers, 4),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p06 = active >= 6  ? request.security(array.get(tickers, 5),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p07 = active >= 7  ? request.security(array.get(tickers, 6),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p08 = active >= 8  ? request.security(array.get(tickers, 7),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p09 = active >= 9  ? request.security(array.get(tickers, 8),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p10 = active >= 10 ? request.security(array.get(tickers, 9),  timeframe.period, close, ignore_invalid_symbol=true) : na
+p11 = active >= 11 ? request.security(array.get(tickers, 10), timeframe.period, close, ignore_invalid_symbol=true) : na
+p12 = active >= 12 ? request.security(array.get(tickers, 11), timeframe.period, close, ignore_invalid_symbol=true) : na
+p13 = active >= 13 ? request.security(array.get(tickers, 12), timeframe.period, close, ignore_invalid_symbol=true) : na
+p14 = active >= 14 ? request.security(array.get(tickers, 13), timeframe.period, close, ignore_invalid_symbol=true) : na
+p15 = active >= 15 ? request.security(array.get(tickers, 14), timeframe.period, close, ignore_invalid_symbol=true) : na
+p16 = active >= 16 ? request.security(array.get(tickers, 15), timeframe.period, close, ignore_invalid_symbol=true) : na
+p17 = active >= 17 ? request.security(array.get(tickers, 16), timeframe.period, close, ignore_invalid_symbol=true) : na
+p18 = active >= 18 ? request.security(array.get(tickers, 17), timeframe.period, close, ignore_invalid_symbol=true) : na
+p19 = active >= 19 ? request.security(array.get(tickers, 18), timeframe.period, close, ignore_invalid_symbol=true) : na
+p20 = active >= 20 ? request.security(array.get(tickers, 19), timeframe.period, close, ignore_invalid_symbol=true) : na
+p21 = active >= 21 ? request.security(array.get(tickers, 20), timeframe.period, close, ignore_invalid_symbol=true) : na
+p22 = active >= 22 ? request.security(array.get(tickers, 21), timeframe.period, close, ignore_invalid_symbol=true) : na
+p23 = active >= 23 ? request.security(array.get(tickers, 22), timeframe.period, close, ignore_invalid_symbol=true) : na
+p24 = active >= 24 ? request.security(array.get(tickers, 23), timeframe.period, close, ignore_invalid_symbol=true) : na
+p25 = active >= 25 ? request.security(array.get(tickers, 24), timeframe.period, close, ignore_invalid_symbol=true) : na
+p26 = active >= 26 ? request.security(array.get(tickers, 25), timeframe.period, close, ignore_invalid_symbol=true) : na
+p27 = active >= 27 ? request.security(array.get(tickers, 26), timeframe.period, close, ignore_invalid_symbol=true) : na
+p28 = active >= 28 ? request.security(array.get(tickers, 27), timeframe.period, close, ignore_invalid_symbol=true) : na
+p29 = active >= 29 ? request.security(array.get(tickers, 28), timeframe.period, close, ignore_invalid_symbol=true) : na
+p30 = active >= 30 ? request.security(array.get(tickers, 29), timeframe.period, close, ignore_invalid_symbol=true) : na
+p31 = active >= 31 ? request.security(array.get(tickers, 30), timeframe.period, close, ignore_invalid_symbol=true) : na
+p32 = active >= 32 ? request.security(array.get(tickers, 31), timeframe.period, close, ignore_invalid_symbol=true) : na
+p33 = active >= 33 ? request.security(array.get(tickers, 32), timeframe.period, close, ignore_invalid_symbol=true) : na
+p34 = active >= 34 ? request.security(array.get(tickers, 33), timeframe.period, close, ignore_invalid_symbol=true) : na
+p35 = active >= 35 ? request.security(array.get(tickers, 34), timeframe.period, close, ignore_invalid_symbol=true) : na
+p36 = active >= 36 ? request.security(array.get(tickers, 35), timeframe.period, close, ignore_invalid_symbol=true) : na
+p37 = active >= 37 ? request.security(array.get(tickers, 36), timeframe.period, close, ignore_invalid_symbol=true) : na
+p38 = active >= 38 ? request.security(array.get(tickers, 37), timeframe.period, close, ignore_invalid_symbol=true) : na
+p39 = active >= 39 ? request.security(array.get(tickers, 38), timeframe.period, close, ignore_invalid_symbol=true) : na
+p40 = active >= 40 ? request.security(array.get(tickers, 39), timeframe.period, close, ignore_invalid_symbol=true) : na
+ 
+// ─────────────────────────────────────────────
+// EMA INPUTS
+// ─────────────────────────────────────────────
+ema1_len  = input.int(20,  "EMA 1 Length", minval=1, group="EMAs")
+ema2_len  = input.int(50,  "EMA 2 Length", minval=1, group="EMAs")
+ema3_len  = input.int(200, "EMA 3 Length", minval=1, group="EMAs")
+show_ema1 = input.bool(true, "Show EMA 1", group="EMAs")
+show_ema2 = input.bool(true, "Show EMA 2", group="EMAs")
+show_ema3 = input.bool(true, "Show EMA 3", group="EMAs")
+
+// ─────────────────────────────────────────────
+// DYNAMIC EQUAL-WEIGHTED AVERAGE
+// ─────────────────────────────────────────────
+f_add(total, count, val) =>
+    if not na(val)
+        [total + val, count + 1]
+    else
+        [total, count]
+ 
+[t01, c01] = f_add(0.0, 0,   p01)
+[t02, c02] = f_add(t01, c01, p02)
+[t03, c03] = f_add(t02, c02, p03)
+[t04, c04] = f_add(t03, c03, p04)
+[t05, c05] = f_add(t04, c04, p05)
+[t06, c06] = f_add(t05, c05, p06)
+[t07, c07] = f_add(t06, c06, p07)
+[t08, c08] = f_add(t07, c07, p08)
+[t09, c09] = f_add(t08, c08, p09)
+[t10, c10] = f_add(t09, c09, p10)
+[t11, c11] = f_add(t10, c10, p11)
+[t12, c12] = f_add(t11, c11, p12)
+[t13, c13] = f_add(t12, c12, p13)
+[t14, c14] = f_add(t13, c13, p14)
+[t15, c15] = f_add(t14, c14, p15)
+[t16, c16] = f_add(t15, c15, p16)
+[t17, c17] = f_add(t16, c16, p17)
+[t18, c18] = f_add(t17, c17, p18)
+[t19, c19] = f_add(t18, c18, p19)
+[t20, c20] = f_add(t19, c19, p20)
+[t21, c21] = f_add(t20, c20, p21)
+[t22, c22] = f_add(t21, c21, p22)
+[t23, c23] = f_add(t22, c22, p23)
+[t24, c24] = f_add(t23, c23, p24)
+[t25, c25] = f_add(t24, c24, p25)
+[t26, c26] = f_add(t25, c25, p26)
+[t27, c27] = f_add(t26, c26, p27)
+[t28, c28] = f_add(t27, c27, p28)
+[t29, c29] = f_add(t28, c28, p29)
+[t30, c30] = f_add(t29, c29, p30)
+[t31, c31] = f_add(t30, c30, p31)
+[t32, c32] = f_add(t31, c31, p32)
+[t33, c33] = f_add(t32, c32, p33)
+[t34, c34] = f_add(t33, c33, p34)
+[t35, c35] = f_add(t34, c34, p35)
+[t36, c36] = f_add(t35, c35, p36)
+[t37, c37] = f_add(t36, c36, p37)
+[t38, c38] = f_add(t37, c37, p38)
+[t39, c39] = f_add(t38, c38, p39)
+[t40, c40] = f_add(t39, c39, p40)
+ 
+avg_price = c40 > 0 ? t40 / c40 : na
+ 
+// ─────────────────────────────────────────────
+// NORMALIZE TO BASE 100
+// ─────────────────────────────────────────────
+var float base_price = na
+if not na(avg_price) and na(base_price) and time >= startDate
+    base_price := avg_price
+ 
+nav = na(base_price) or base_price == 0 ? na : (avg_price / base_price) * 100
+ 
+// ─────────────────────────────────────────────
+// EMAs
+// ─────────────────────────────────────────────
+ema1 = ta.ema(nav, ema1_len)
+ema2 = ta.ema(nav, ema2_len)
+ema3 = ta.ema(nav, ema3_len)
+ 
+// ─────────────────────────────────────────────
+// PLOTS
+// ─────────────────────────────────────────────
+plot(nav,                    title="NAV",   color=color.new(color.white,  0), linewidth=2)
+plot(show_ema1 ? ema1 : na,  title="EMA 1", color=color.new(color.yellow, 0), linewidth=1)
+plot(show_ema2 ? ema2 : na,  title="EMA 2", color=color.new(color.orange, 0), linewidth=1)
+plot(show_ema3 ? ema3 : na,  title="EMA 3", color=color.new(color.red,    0), linewidth=2)
+hline(100, "Base (100)", color=color.new(color.gray, 50), linestyle=hline.style_dashed)
+ 
+_lsize = switch label_size
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    "huge"   => size.huge
+    => size.normal
+ 
+// ─────────────────────────────────────────────
+// NAV LABEL — last bar only
+// ─────────────────────────────────────────────
+var label navLbl = na
+if barstate.islast and show_label and not na(nav)
+    label.delete(navLbl)
+    navLbl := label.new(
+         x         = bar_index,
+         y         = nav,
+         text      = selected_sector + "\n" + str.tostring(math.round(nav, 2)) + "  (" + str.tostring(c40) + " stocks)",
+         color     = color.new(color.teal, 20),
+         textcolor = color.white,
+         style     = label.style_label_left,
+         size      = _lsize)
+ 
+// ─────────────────────────────────────────────
+// RETURNS TABLE
+// ─────────────────────────────────────────────
+var array<int>   navTimes  = array.new_int()
+var array<float> navValues = array.new_float()
+ 
+if barstate.isconfirmed and not na(nav)
+    array.push(navTimes, time)
+    array.push(navValues, nav)
+ 
+f_navAtOrBefore(arrT, arrV, targetTime) =>
+    n = array.size(arrT)
+    result = float(na)
+    if n > 0 and array.get(arrT, 0) <= targetTime
+        lo = 0
+        hi = n - 1
+        while lo < hi
+            mid = int(math.ceil((lo + hi) / 2.0))
+            if array.get(arrT, mid) <= targetTime
+                lo := mid
+            else
+                hi := mid - 1
+        result := array.get(arrV, lo)
+    result
+ 
+f_fillRow(tbl, row, lbl, days, curNav, arrT, arrV, txtSize) =>
+    msPerDay = 86400000
+    pastNav  = f_navAtOrBefore(arrT, arrV, time - days * msPerDay)
+    chg      = (na(curNav) or na(pastNav) or pastNav == 0) ? float(na) : (curNav - pastNav) / pastNav * 100
+    txt      = na(chg) ? "N/A" : str.tostring(chg, "#.##") + "%"
+    col      = na(chg) ? color.gray : (chg >= 0 ? color.lime : color.red)
+    table.cell(tbl, 0, row, lbl, text_color=color.white, text_size=txtSize)
+    table.cell(tbl, 1, row, txt, text_color=col, text_size=txtSize)
+ 
+tablePos = switch table_position_in
+    "Top Right"    => position.top_right
+    "Top Left"     => position.top_left
+    "Bottom Right" => position.bottom_right
+    "Bottom Left"  => position.bottom_left
+    => position.top_right
+ 
+var table retTable = na
+ 
+if barstate.islast
+    if show_returns_table
+        if na(retTable)
+            retTable := table.new(tablePos, 2, 9, border_width=1, bgcolor=color.new(color.black, 80), border_color=color.gray)
+        table.cell(retTable, 0, 0, "Period", text_color=color.white, text_size=_lsize, bgcolor=color.new(color.blue, 70))
+        table.cell(retTable, 1, 0, "Return", text_color=color.white, text_size=_lsize, bgcolor=color.new(color.blue, 70))
+        f_fillRow(retTable, 1, "1 Day",   1,    nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 2, "1 Week",  7,    nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 3, "1 Month", 30,   nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 4, "3 Month", 91,   nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 5, "6 Month", 182,  nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 6, "1 Year",  365,  nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 7, "3 Year",  1095, nav, navTimes, navValues, _lsize)
+        f_fillRow(retTable, 8, "5 Year",  1825, nav, navTimes, navValues, _lsize)
+    else if not na(retTable)
+        table.delete(retTable)
+        retTable := na
+ 
+// ─────────────────────────────────────────────
+// STOCK vs NAV PERFORMANCE TABLE
+// ─────────────────────────────────────────────
+priceArr = array.from(p01, p02, p03, p04, p05, p06, p07, p08, p09, p10,
+                       p11, p12, p13, p14, p15, p16, p17, p18, p19, p20,
+                       p21, p22, p23, p24, p25, p26, p27, p28, p29, p30,
+                       p31, p32, p33, p34, p35, p36, p37, p38, p39, p40)
+ 
+var array<float> stockBasePrice = array.new_float(40, na)
+ 
+// Explicit tracking logic resets baseline references if industry input updates
+var string tracking_check = ""
+if tracking_check != selected_sector
+    array.fill(stockBasePrice, na)
+    tracking_check := selected_sector
+
+for i = 0 to 39
+    px = array.get(priceArr, i)
+    if not na(px) and na(array.get(stockBasePrice, i)) and time >= startDate
+        array.set(stockBasePrice, i, px)
+ 
+f_tickerOnly(fullSym) =>
+    parts = str.split(fullSym, ":")
+    array.size(parts) > 1 ? array.get(parts, 1) : fullSym
+ 
+tablePosPerf = switch perf_table_pos_in
+    "Top Right"    => position.top_right
+    "Top Left"     => position.top_left
+    "Bottom Right" => position.bottom_right
+    "Bottom Left"  => position.bottom_left
+    => position.bottom_right
+ 
+var table perfTable = na
+ 
+if barstate.islast
+    if show_perf_table
+        navRoc = na(nav) ? float(na) : nav - 100
+ 
+        var array<float> rocSortArr = array.new_float(0)
+        array.clear(rocSortArr)
+        for i = 0 to active - 1
+            basePx = array.get(stockBasePrice, i)
+            curPx  = array.get(priceArr, i)
+            roc    = (na(basePx) or na(curPx) or basePx == 0) ? float(na) : (curPx - basePx) / basePx * 100
+            array.push(rocSortArr, na(roc) ? -1e9 : roc)
+ 
+        sortedIdx = array.sort_indices(rocSortArr, order.descending)
+ 
+        if na(perfTable)
+            perfTable := table.new(tablePosPerf, 3, 42, border_width=1, bgcolor=color.new(color.black, 80), border_color=color.gray)
+ 
+        table.cell(perfTable, 0, 0, "Stock",   text_color=color.white, text_size=_lsize, bgcolor=color.new(color.blue, 70))
+        table.cell(perfTable, 1, 0, "Return",  text_color=color.white, text_size=_lsize, bgcolor=color.new(color.blue, 70))
+        table.cell(perfTable, 2, 0, "vs NAV",  text_color=color.white, text_size=_lsize, bgcolor=color.new(color.blue, 70))
+ 
+        navTxt = na(navRoc) ? "N/A" : str.tostring(navRoc, "#.##") + "%"
+        table.cell(perfTable, 0, 1, "NAV (Baseline)", text_color=color.white,  text_size=_lsize, bgcolor=color.new(color.teal, 60))
+        table.cell(perfTable, 1, 1, navTxt,            text_color=color.white, text_size=_lsize, bgcolor=color.new(color.teal, 60))
+        table.cell(perfTable, 2, 1, "—",                text_color=color.white, text_size=_lsize, bgcolor=color.new(color.teal, 60))
+ 
+        for r = 0 to active - 1
+            idx     = array.get(sortedIdx, r)
+            basePx  = array.get(stockBasePrice, idx)
+            curPx   = array.get(priceArr, idx)
+            roc     = (na(basePx) or na(curPx) or basePx == 0) ? float(na) : (curPx - basePx) / basePx * 100
+            vsNav   = (na(roc) or na(navRoc)) ? float(na) : roc - navRoc
+ 
+            name    = f_tickerOnly(array.get(tickers, idx))
+            rocTxt  = na(roc)   ? "N/A" : str.tostring(roc, "#.##") + "%"
+            vsTxt   = na(vsNav) ? "N/A" : str.tostring(vsNav, "#.##") + "%"
+            vsCol   = na(vsNav) ? color.gray : (vsNav >= 0 ? color.lime : color.red)
+ 
+            table.cell(perfTable, 0, r + 2, name,   text_color=color.white, text_size=_lsize)
+            table.cell(perfTable, 1, r + 2, rocTxt, text_color=color.white, text_size=_lsize)
+            table.cell(perfTable, 2, r + 2, vsTxt,  text_color=vsCol,       text_size=_lsize)
+    else if not na(perfTable)
+        table.delete(perfTable)
+        perfTable := na
